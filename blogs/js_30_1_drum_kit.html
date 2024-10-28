@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Baris Bolat</title>
+  </head>
+  <body>
+    <h1>Javascript30 - JS Drum kit</h1>
+    <img src="/assets/js_1_drum_kit.webp" width="768" height="432" />
+    <br />
+    <a
+      target="_blank"
+      href="https://js30.bolatbaris.net/01%20-%20JavaScript%20Drum%20Kit/"
+      >Canlı projeyi görmek için tıklayınız</a
+    >
+    <br />
+    <h2>Projenin tanımlanması</h2>
+    JS 30 serisinin ilk projesi klavyeden basılan karaktere göre önceden
+    belirlenmiş bir ses dosyasını çalmamızı isteniyor.
+    <br />Tabii ses çıkartmak haricinde sayfada ki ilgili div feedback vermeli.
+    <br />
+    projenin başlangıç kodlarında ilgili ses dosyaları ve tasarım mevcut. Bizden
+    JavaScript ile işlevsellik eklememiz bekleniyor.
+    <h2>Benim çözümüm (v1)</h2>
+    <img src="/assets/js_1_drum_kit_code_1.webp" />
+    <br />
+    Başlangıç kodunu incelediğimde ekranda ki her div için farklı
+    <b>data-key</b> değeri verildiğini gördüm. Bu kodların girilen karakterlerin
+    karakter değeriyle ilişkili olduğu aşikar.
+    <br />
+    <img src="/assets/js_1_drum_kit_code_2.webp" />
+
+    <br />
+    Ardından audio elementler için de aynı bilgilerin geçildiğini fark ettim. Şu
+    şekilde bir ilerleme düşündüm.
+    <ol>
+      <li>
+        Kullanıcının etkileşime geçtiği tuşu yakala ve karakter değerini öğren
+      </li>
+      <li>
+        O karakter değerine denk gelen audio elementini bul ve varsa play() ile
+        çalıştır
+      </li>
+      <li>
+        O karakter değerine denk gelen div elementini bul ve varsa feedback
+        vermek için <i>playing</i> class bilgisini ekle
+      </li>
+      <li>
+        Bir zaman sonra o karakter değerine sahip div'i bul ve varsa
+        <i>playing</i> class bilgisini çıkar. (Zamanını henüz bende bilmiyorum)
+      </li>
+    </ol>
+
+    Bu adımlar neticesinde yazdığım ilk kod
+    <pre>
+   <code>
+    const audioMap = new Map([])
+    const keyElementMap = new Map([])
+
+    const audioElements = document.getElementsByTagName("audio")
+    const keyElements = document.getElementsByClassName("key")
+
+    for (let audio of audioElements) {
+      audioMap.set(+audio.dataset.key, audio)
+    }
+
+    for (let keyElement of keyElements) {
+      keyElementMap.set(+keyElement.dataset.key, keyElement)
+    }
+
+    document.onkeypress = function (e) {
+      audioMap.get(e.charCode)?.play()
+      const keyElement = keyElementMap.get(e.charCode)
+      if (keyElement) {
+        keyElement.classList.add("playing")
+        setTimeout(() => {
+          keyElement.classList.remove("playing")
+        }, 200)
+      }
+    }
+   </code>
+  </pre>
+
+    Kodu ve düşüncelerimi anlatacak olursam.
+    <ol>
+      <li>
+        İlk olarak sürekli dom'da arama yapmamak adına sayfa initialize
+        olduğunda, audio elementleri ve ekranda ki div'leri temsilen key
+        elementleri bir map'de tutuyorum. karakter kodu verdiğimizde
+        karşılığında, varsa, audio veya key elementi direk alacağız.
+      </li>
+      <li>
+        Ardından bu iki map'ı element ve className aramalarıyla dolduruyorum
+      </li>
+      <li>
+        Kullanıcı bir <b>KeyboardEvent</b> yarattığında bunu kullanacak bir
+        function oluşturuyorum
+      </li>
+      <ol>
+        <li>
+          İlgili sesi çalabilmek adına audio elementini map'den karakter kodu
+          ile istiyorum
+        </li>
+        <li>
+          UI da görsel feedback verebilmek adına ilgili div elemanını
+          keyElements mapinden karakter kodu ile istiyorum
+        </li>
+        <li>
+          Eğer girilen karakter koduna ait UI'da bir audio elementim varsa onun
+          <i>play()</i> ile ses çıkarmasını sağlıyorum.
+        </li>
+        <li>
+          Eğer girilen karakter koduna ait UI'da bir div'im varsa, yeni key
+          element varsa, ona <i>playing</i> style bilgisini ekliyorum.
+        </li>
+        <li>
+          200ms sonra ise bu class bilgisini çıkartarak eski haline gelmesini
+          sağlıyorum.
+        </li>
+      </ol>
+    </ol>
+
+    <h2>v1 sorunları ve v2 geçiş</h2>
+    v1 sürümümüz temel gereksinimleri karşılıyor lakin bazı konularda yetersiz
+    kaldı.
+    <ul>
+      <li>
+        Animasyonunun bitiminin ve playing sınıfının çıkartılmasının
+        stillendirme ile aynı zamanda olması gerekiyor ama şu anda static 200ms
+      </li>
+      <li>
+        Aktif olarak çalan bir müziğe tekrar basıldığında başa dönüp tekrar
+        çalmıyor. O sesin sıfırlanıpğ tekrar çalması gerekir.
+      </li>
+      <li>
+        Klavyede girişinde büyük/küçük harf farkı yaşanıyor. hem küçük hem büyük
+        harf girişiinde de aynı müzik çalmalı.
+      </li>
+      <li>
+        document.onkeypress = function... eşitlemesi iyi bir yöntem değil bunun
+        yerine eventListiner'a eklemek çok daha iyi bir çözüm olacaktır
+      </li>
+    </ul>
+    Bunları çözmek adına geliştirdiğim kod parçası : <br />
+
+    <pre>
+    <code>
+      const keys = Array.from(document.getElementsByClassName("key"))
+      const audioElements = Array.from(document.getElementsByTagName("audio"))
+
+      const audioMap = new Map([])
+      const keyElementMap = new Map([])
+
+      for (let audio of audioElements) {
+        audioMap.set(+audio.dataset.key, audio)
+      }
+
+      for (let keyElement of keys) {
+        keyElementMap.set(+keyElement.dataset.key, keyElement)
+      }
+
+      function removeTransition(e) {
+        if (e.propertyName !== "transform") return
+        e.target.classList.remove("playing")
+      }
+
+      function playSound(e) {
+        const audio = audioMap.get(e.keyCode)
+        const key = keyElementMap.get(e.keyCode)
+        if (!audio || !key) return
+
+        key.classList.add("playing")
+        audio.currentTime = 0
+        audio.play()
+      }
+
+      keys.forEach((key) =>
+        key.addEventListener("transitionend", removeTransition)
+      )
+      window.addEventListener("keydown", playSound)
+    </code>
+   </pre>
+
+    Orjinal çözümden farklı olarak kendi yapımım üzerine inşaa etmeye devam
+    ettim. Orjinal çözüm çok daha temiz durmakla birlikte bu çözümünde kendine
+    göre artıları vardır.
+    <br />
+    Her event esnasında dom'da arama yapmaması en büyük artısıdır. Lakin yinede
+    orjinal çözümü tercih ederdim.
+    <h2>Neler öğrendim</h2>
+    <ul>
+      <li>
+        Daha önce data-* kullanma fırsatım olmamıştı. Bu ornekde çok rahatca
+        amacı nedir ve nasıl kullanılır öğrenmiş oldum. detaylı bilgi için
+        <a
+          target="_blank"
+          href="https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*"
+          >mdn dökümantasyonu</a
+        >
+      </li>
+      <li>
+        Transition end durumunu yakalamak için event varmış. Bu örnek sayesinde
+        öğrendim, daha önce ihtiyacım olmamıştı. Bu ve bunun gibi eventları
+        arada okumakda fayda var. detaylı bilgi için
+        <a
+          target="_blank"
+          href="https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event"
+          >mdn dökümantasyonu</a
+        >
+      </li>
+    </ul>
+  </body>
+</html>
